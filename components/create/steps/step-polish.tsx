@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { toast } from '@/components/ui/toast'
+import { compressForGallery } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { ThumbnailOverlay } from '@/components/thumbnail-overlay'
 import { ExportMenu } from '@/components/ui/export-menu'
@@ -73,14 +74,14 @@ export function StepPolish() {
   const handleSave = async () => {
     if (!currentUrl || !config.composition) return
     setSaving(true)
+    toast('Saving to gallery…', 'info')
     try {
+      const galleryUrl = await compressForGallery(currentUrl)
       addThumbnail({
         title: title || `Thumbnail ${new Date().toLocaleDateString()}`,
-        url: currentUrl,
+        url: galleryUrl,
         composition: config.composition,
-        assets: config.assets,
         instructions: config.instructions,
-        variants: config.variants,
       })
       toast('Saved to gallery!', 'success')
       setTimeout(() => {

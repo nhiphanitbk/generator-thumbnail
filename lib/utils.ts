@@ -138,3 +138,64 @@ export async function downloadImageResized(
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
+
+/**
+ * Compress any image (URL or base64 data URL) to max 640×360 JPEG 0.75.
+ * Keeps gallery storage small enough for localStorage (~50-80KB per image).
+ */
+export async function compressForGallery(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const MAX_W = 640, MAX_H = 360
+      const scale = Math.min(MAX_W / img.width, MAX_H / img.height, 1)
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.75))
+    }
+    img.onerror = () => resolve(src)
+    img.crossOrigin = 'anonymous'
+    img.src = src
+  })
+}
+
+/**
+ * Fetch an image URL, resize it to max 640×360 (JPEG 0.75), and return a data URL.
+ * This keeps gallery storage under ~80KB per image so localStorage quota isn't exceeded.
+ * Falls back to the original URL if anything fails.
+ */
+export async function urlToDataUrl(url: string): Promise<string> {
+  if (url.startsWith('data:')) return url
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return url
+    const blob = await res.blob()
+    const objectUrl = URL.createObjectURL(blob)
+
+    return await new Promise<string>((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX_W = 640
+        const MAX_H = 360
+        const scale = Math.min(MAX_W / img.width, MAX_H / img.height, 1)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+        URL.revokeObjectURL(objectUrl)
+        resolve(canvas.toDataURL('image/jpeg', 0.75))
+      }
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(url) }
+      img.crossOrigin = 'anonymous'
+      img.src = objectUrl
+    })
+  } catch {
+    return url
+  }
+}

@@ -21,6 +21,24 @@ export default function ProfilePage() {
 
   const addInputRef = useRef<HTMLInputElement>(null)
 
+  const compressImage = (base64: string): Promise<string> =>
+    new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 512
+        const scale = Math.min(MAX / img.width, MAX / img.height, 1)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      img.onerror = () => resolve(base64)
+      img.src = base64
+    })
+
   const readFiles = async (files: File[]): Promise<string[]> => {
     const results: string[] = []
     for (const file of files) {
@@ -29,7 +47,8 @@ export default function ProfilePage() {
         continue
       }
       try {
-        results.push(await fileToBase64(file))
+        const raw = await fileToBase64(file)
+        results.push(await compressImage(raw))
       } catch {
         toast(`Failed to process "${file.name}"`, 'error')
       }

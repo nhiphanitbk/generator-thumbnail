@@ -20,6 +20,22 @@ import {
   Eye,
 } from 'lucide-react'
 
+function GalleryImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [expired, setExpired] = useState(false)
+  if (expired) {
+    return (
+      <div className={`w-full h-full flex flex-col items-center justify-center bg-surface-2 gap-2 ${className ?? ''}`}>
+        <span className="text-2xl">🕐</span>
+        <span className="text-xs font-medium text-muted">Image expired</span>
+      </div>
+    )
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className={className} onError={() => setExpired(true)} />
+  )
+}
+
 export default function GalleryPage() {
   const { thumbnails, removeThumbnail } = useGalleryStore()
   const { reset, setComposition } = useWizardStore()
@@ -104,8 +120,7 @@ export default function GalleryPage() {
             >
               {/* Thumbnail */}
               <div className="aspect-video relative overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <GalleryImage
                   src={t.url}
                   alt={t.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -195,8 +210,7 @@ export default function GalleryPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="aspect-video">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview.url} alt={preview.title} className="w-full h-full object-cover" />
+              <GalleryImage src={preview.url} alt={preview.title} className="w-full h-full object-cover" />
             </div>
             <div className="p-5 flex items-start justify-between">
               <div>

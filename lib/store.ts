@@ -40,6 +40,42 @@ export const useProfileStore = create<ProfileStore>()(
   )
 )
 
+// ─── Migrations ──────────────────────────────────────────────────────────────
+if (typeof window !== 'undefined') {
+  // Compress oversized face-profile images (stored full-size before compression was added)
+  try {
+    const raw = localStorage.getItem('face-profile')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const images: string[] = parsed?.state?.profile?.images ?? []
+      // If any image is larger than ~100KB in base64 chars (~75KB actual), recompress
+      const needsRecompress = images.some((img) => img.length > 140_000)
+      if (needsRecompress) {
+        const compress = (b64: string): Promise<string> =>
+          new Promise((resolve) => {
+            const img = new Image()
+            img.onload = () => {
+              const MAX = 512
+              const scale = Math.min(MAX / img.width, MAX / img.height, 1)
+              const canvas = document.createElement('canvas')
+              canvas.width = Math.round(img.width * scale)
+              canvas.height = Math.round(img.height * scale)
+              canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+              resolve(canvas.toDataURL('image/jpeg', 0.82))
+            }
+            img.onerror = () => resolve(b64)
+            img.src = b64
+          })
+
+        Promise.all(images.map(compress)).then((compressed) => {
+          parsed.state.profile.images = compressed
+          try { localStorage.setItem('face-profile', JSON.stringify(parsed)) } catch { /* ignore */ }
+        })
+      }
+    }
+  } catch { /* ignore */ }
+}
+
 // ─── Gallery ─────────────────────────────────────────────────────────────────
 
 interface GalleryStore {

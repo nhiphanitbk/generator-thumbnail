@@ -42,9 +42,7 @@ export interface SavedThumbnail {
   title: string
   url: string
   composition: CompositionSource
-  assets: ThumbnailAsset[]
   instructions: string
-  variants: ThumbnailVariant[]
   createdAt: string
 }
 
