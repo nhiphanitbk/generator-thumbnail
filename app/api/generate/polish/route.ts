@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { polishThumbnail } from '@/lib/gemini-image'
-import { generatePolishPrompt } from '@/lib/claude'
+import { generatePolishPrompt } from '@/lib/ai'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Image URL is required' }, { status: 400 })
     }
 
-    // Get Claude's polish guidance (prompt only; Gemini doesn't need creativity/resemblance)
+    // Get AI polish guidance (prompt only; Gemini doesn't need creativity/resemblance)
     const { prompt } = await generatePolishPrompt({
       imageUrl,
       userPolishNote: userNote,

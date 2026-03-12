@@ -9,7 +9,7 @@ import { toast } from '@/components/ui/toast'
 import { ExportMenu } from '@/components/ui/export-menu'
 import { ThumbnailOverlay } from '@/components/thumbnail-overlay'
 import type { AnalysisResult, ThumbnailVariant } from '@/lib/types'
-import type { CTRAnalysis } from '@/lib/claude'
+import type { CTRAnalysis } from '@/lib/ai'
 import { generateId } from '@/lib/utils'
 import { ArrowRight, ArrowLeft, RefreshCw, Check, Sparkles, Zap, AlertCircle, BarChart2, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
@@ -48,7 +48,7 @@ export function StepGenerate() {
 
     try {
       // Step 1: Analyze reference and build prompt
-      setStatusMsg('Analyzing reference thumbnail with Claude…')
+      setStatusMsg('Analyzing reference thumbnail…')
       setProgress(15)
 
       const refUrl =
@@ -205,7 +205,7 @@ export function StepGenerate() {
           <Progress value={progress} animated />
           <div className="flex items-center gap-3 mt-3">
             {[
-              { label: 'Claude analysis', done: progress >= 35 },
+              { label: 'AI analysis', done: progress >= 35 },
               { label: 'Variant 1', done: progress >= 70 },
               { label: 'Variant 2', done: progress >= 100 },
             ].map(({ label, done }) => (
@@ -324,7 +324,7 @@ export function StepGenerate() {
                   className="h-7 text-xs"
                 >
                   <Sparkles size={11} />
-                  Analyze with Claude
+                  Analyze CTR
                 </Button>
               )}
               {ctr && (
@@ -392,7 +392,7 @@ export function StepGenerate() {
             )}
 
             {!ctr && !ctrLoading && (
-              <p className="text-xs text-muted">Claude will analyze colors, composition, emotion, and visual hierarchy to estimate CTR potential.</p>
+              <p className="text-xs text-muted">AI will analyze colors, composition, emotion, and visual hierarchy to estimate CTR potential.</p>
             )}
           </div>
         </div>
@@ -402,7 +402,7 @@ export function StepGenerate() {
       {analysis && (
         <details className="mb-6">
           <summary className="text-xs text-muted cursor-pointer hover:text-secondary select-none">
-            Show Claude analysis details
+            Show AI analysis details
           </summary>
           <div className="mt-2 bg-surface-2 border border-border rounded-xl p-4 text-xs space-y-2">
             <div><span className="text-muted">Composition:</span> <span className="text-secondary">{analysis.compositionType}</span></div>

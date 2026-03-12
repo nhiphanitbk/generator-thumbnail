@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { analyzeReferenceAndBuildPrompt, generateAutoInstructions } from '@/lib/claude'
+import { analyzeReferenceAndBuildPrompt, generateAutoInstructions } from '@/lib/ai'
 
 export async function POST(req: NextRequest) {
   try {

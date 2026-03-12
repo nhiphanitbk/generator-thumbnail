@@ -20,7 +20,7 @@ An AI-powered YouTube thumbnail generator built with Next.js. Create professiona
 | Styling | Tailwind CSS, Radix UI, Framer Motion |
 | State | Zustand with `localStorage` persistence |
 | Image AI | Google Gemini (`gemini-3.1-flash-image-preview`) |
-| Analysis AI | Claude (Anthropic API or proxy) |
+| Analysis AI | Google Gemini (`gemini-2.5-flash`) |
 
 ## Setup
 
@@ -35,17 +35,8 @@ npm install
 Create `.env.local` at the project root:
 
 ```env
-# Google Gemini — required for image generation
+# Google Gemini — required for all AI features (image generation + analysis)
 GEMINI_API_KEY=your_gemini_api_key_here
-
-# Claude — choose one option:
-
-# Option A: Direct Anthropic API
-ANTHROPIC_API_KEY=sk-ant-api03-...
-
-# Option B: Proxy (used if ANTHROPIC_API_KEY is not set)
-PROXY_BASE=https://your-proxy.example.com/v1
-PROXY_KEY=your_proxy_key_here
 ```
 
 ### 3. Run the development server
@@ -61,7 +52,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Route | Method | Description |
 | --- | --- | --- |
 | `/api/youtube/extract` | POST | Extract thumbnail from a YouTube URL |
-| `/api/generate/analyze` | POST | Claude reference analysis + prompt engineering |
+| `/api/generate/analyze` | POST | Gemini reference analysis + prompt engineering |
 | `/api/generate/thumbnail` | POST | Gemini image generation (with optional face) |
 | `/api/generate/polish` | POST | Enhance selected thumbnail via Gemini |
 | `/api/generate/asset` | POST | Generate a standalone square asset |
@@ -76,7 +67,7 @@ components/
   create/steps/       # Wizard step components
   ui/                 # Shared UI primitives
 lib/
-  claude.ts           # Claude API client (direct or proxy)
+  ai.ts               # AI analysis helpers (Gemini text + vision)
   gemini-image.ts     # Gemini image generation wrappers
   store.ts            # Zustand stores (profile, gallery, wizard)
   types.ts            # TypeScript types
@@ -96,7 +87,4 @@ All data is stored in `localStorage` — no database required.
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `GEMINI_API_KEY` | Yes | Google AI Studio API key |
-| `ANTHROPIC_API_KEY` | One of | Direct Anthropic API key |
-| `PROXY_BASE` | One of | Proxy base URL (e.g. `https://claude.24h.dev/v1`) |
-| `PROXY_KEY` | One of | API key for the proxy |
+| `GEMINI_API_KEY` | Yes | Google AI Studio API key — used for both image generation and analysis |

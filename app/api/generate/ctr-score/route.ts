@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { analyzeThumbnailCTR } from '@/lib/claude'
+import { analyzeThumbnailCTR } from '@/lib/ai'
 
 export async function POST(req: NextRequest) {
   try {
