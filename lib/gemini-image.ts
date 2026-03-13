@@ -1,8 +1,9 @@
 import { GoogleGenAI, Modality } from "@google/genai";
+import { buildFaceGenerationPrompt, buildPolishGenerationPrompt, buildAssetPrompt } from "./prompts";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-const MODEL = "gemini-3.1-flash-image-preview";
+const MODEL = "gemini-3-pro-image-preview";
 
 export interface GeneratedImage {
   url: string; // data URL (data:image/...;base64,...)
@@ -64,6 +65,8 @@ export async function generateWithFace(input: {
     input.faceImageUrls.slice(0, 4).map(urlToInlinePart),
   );
 
+  const facePrompt = buildFaceGenerationPrompt(input.prompt)
+
   const response = await ai.models.generateContent({
     model: MODEL,
     contents: [
@@ -71,9 +74,7 @@ export async function generateWithFace(input: {
         role: "user",
         parts: [
           ...imageParts,
-          {
-            text: `Use the face shown in the reference image(s) as the person's identity. Generate a YouTube thumbnail: ${input.prompt}`,
-          },
+          { text: facePrompt },
         ],
       },
     ],
@@ -100,7 +101,7 @@ export async function polishThumbnail(input: {
         parts: [
           imagePart,
           {
-            text: `Enhance this YouTube thumbnail image: ${input.prompt}. Keep the same composition and 16:9 aspect ratio.`,
+            text: buildPolishGenerationPrompt(input.prompt),
           },
         ],
       },
@@ -122,7 +123,7 @@ export async function generateAsset(prompt: string): Promise<GeneratedImage> {
         role: "user",
         parts: [
           {
-            text: `${prompt}, isolated on white background, product shot style, clean, high detail`,
+            text: buildAssetPrompt(prompt),
           },
         ],
       },

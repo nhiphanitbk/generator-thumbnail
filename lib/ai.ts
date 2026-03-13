@@ -4,6 +4,14 @@
 
 import { GoogleGenAI, Modality } from '@google/genai'
 import type { AnalysisResult } from './types'
+import {
+  buildFaceInstruction,
+  buildAnalysisPrompt,
+  buildTextOnlyContext,
+  buildPolishAnalysisPrompt,
+  buildAutoInstructionsPrompt,
+  CTR_ANALYSIS_PROMPT,
+} from './prompts'
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 const TEXT_MODEL = 'gemini-2.5-flash'
@@ -59,13 +67,6 @@ function extractJson<T>(text: string): T {
   return JSON.parse(match[0]) as T
 }
 
-function buildTextOnlyContext(referenceImageUrl: string): string {
-  const ytMatch = referenceImageUrl.match(/vi\/([a-zA-Z0-9_-]{11})\//)
-  return ytMatch
-    ? `Reference: YouTube thumbnail (video ID: ${ytMatch[1]}). Assume a typical high-performing YouTube thumbnail layout with strong visual hierarchy.`
-    : `Reference image: ${referenceImageUrl}. Infer a compelling YouTube thumbnail layout.`
-}
-
 // ─── Exported functions ───────────────────────────────────────────────────────
 
 export async function analyzeReferenceAndBuildPrompt({
@@ -81,31 +82,18 @@ export async function analyzeReferenceAndBuildPrompt({
   hasFaceProfile: boolean
   faceProfileNote?: string
 }): Promise<AnalysisResult> {
-  const schema = `USER ASSETS: ${assetDescriptions.length > 0 ? assetDescriptions.join(', ') : 'None'}
-USER INSTRUCTIONS: ${userInstructions || 'Use your best judgment to create an eye-catching thumbnail'}
-FACE PROFILE: ${hasFaceProfile ? `Yes — ${faceProfileNote || 'Replace any person with the uploaded face'}` : 'No face profile'}
-
-You are an expert YouTube thumbnail designer and AI image generation specialist.
-Analyze the reference thumbnail and craft a precise generation prompt.
-Respond with this exact JSON (no markdown fences):
-{
-  "layoutDescription": "layout and element positions",
-  "colorPalette": ["#hex1", "#hex2", "#hex3"],
-  "compositionType": "e.g. reaction face left + text right",
-  "keyElements": ["element1", "element2"],
-  "hasPerson": true,
-  "suggestedFaceReplacement": ${hasFaceProfile},
-  "generationPrompt": "150-300 word Gemini image prompt covering: subject position, expression, clothing, background, lighting (dramatic/bright/cinematic), colors (vivid/high-contrast), 'professional YouTube thumbnail 16:9 1280x720', 'sharp focus professional photography high detail'. Integrate all user assets.",
-  "negativePrompt": "blurry, low quality, pixelated, watermark, deformed faces",
-  "strength": 0.75
-}`
+  const assetList = assetDescriptions.length > 0 ? assetDescriptions.join(', ') : 'None'
+  const faceInstruction = buildFaceInstruction(hasFaceProfile, faceProfileNote)
+  const schema = buildAnalysisPrompt({ assetList, userInstructions, faceInstruction, hasFaceProfile })
 
   let text: string
-
   try {
-    text = await generateTextWithImage(referenceImageUrl, `Analyze this reference thumbnail.\n${schema}`)
+    text = await generateTextWithImage(
+      referenceImageUrl,
+      `Analyze this reference YouTube thumbnail — extract every visual detail precisely.\n${schema}`
+    )
   } catch {
-    // Vision failed (e.g. image fetch failed) — fall back to text-only
+    // Vision failed — fall back to text-only
     text = await generateText(`${buildTextOnlyContext(referenceImageUrl)}\n${schema}`)
   }
 
@@ -118,17 +106,14 @@ export async function generatePolishPrompt({
   imageUrl?: string
   userPolishNote?: string
 }): Promise<{ prompt: string; creativity: number; resemblance: number }> {
-  const prompt = `Generate a polish/enhancement prompt for a YouTube thumbnail.
-User notes: ${userPolishNote || 'Improve overall quality, lighting, and visual appeal'}
-
-Respond with JSON only (no markdown): {"prompt": "enhancement prompt", "creativity": 0.2, "resemblance": 0.85}
-creativity: 0.1-0.4, resemblance: 0.7-0.95
-Focus: ${userPolishNote || 'sharpness, lighting, color vibrancy, professional look'}`
-
-  const text = await generateText(prompt)
+  const text = await generateText(buildPolishAnalysisPrompt(userPolishNote))
 
   const match = text.match(/\{[\s\S]*\}/)
-  if (!match) return { prompt: 'professional YouTube thumbnail, sharp, vibrant, high quality', creativity: 0.2, resemblance: 0.85 }
+  if (!match) return {
+    prompt: 'Enhance sharpness, boost color vibrancy and saturation, improve lighting contrast. Keep all faces, positions, and background identical.',
+    creativity: 0.15,
+    resemblance: 0.92,
+  }
   return JSON.parse(match[0])
 }
 
@@ -143,13 +128,7 @@ export interface CTRAnalysis {
 }
 
 export async function analyzeThumbnailCTR(imageUrl: string): Promise<CTRAnalysis> {
-  const prompt = `Analyze this YouTube thumbnail for click-through rate (CTR) potential.
-Rate it 1-10 and give concise, specific feedback.
-verdict: "Excellent" (9-10), "Good" (7-8), "Average" (5-6), "Weak" (1-4)
-Respond with JSON only (no markdown):
-{"score":7,"verdict":"Good","strengths":["point 1","point 2"],"improvements":["point 1","point 2"],"tip":"single most impactful change"}`
-
-  const text = await generateTextWithImage(imageUrl, prompt)
+  const text = await generateTextWithImage(imageUrl, CTR_ANALYSIS_PROMPT)
   return extractJson<CTRAnalysis>(text)
 }
 
@@ -164,12 +143,9 @@ export async function generateAutoInstructions({
   assetDescriptions: string[]
   hasFaceProfile: boolean
 }): Promise<string> {
-  const userMsg = `${buildTextOnlyContext(referenceImageUrl)}
-My assets: ${assetDescriptions.join(', ') || 'none'}.
-${hasFaceProfile ? 'I have a face profile to use as replacement.' : ''}
-
-Write 2-3 sentences describing how to blend my assets into this composition.
-Be specific: what to replace, keep, and where things go. Return only the instruction text.`
+  const context = buildTextOnlyContext(referenceImageUrl)
+  const assetList = assetDescriptions.join(', ')
+  const userMsg = buildAutoInstructionsPrompt(context, assetList, hasFaceProfile)
 
   try {
     return await generateTextWithImage(referenceImageUrl, userMsg)

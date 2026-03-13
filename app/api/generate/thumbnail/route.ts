@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       const image = await generateThumbnailVariant({
         prompt: variantIndex === 0
           ? analysis.generationPrompt
-          : `${analysis.generationPrompt}, alternative composition`,
+          : `${analysis.generationPrompt} — For this variant: slightly adjust the subject's facial expression to be more intense/dramatic, and subtly shift the camera angle. Keep background, lighting, clothing, and overall composition identical to the main description.`,
       })
       imageUrl = image.url
     }
