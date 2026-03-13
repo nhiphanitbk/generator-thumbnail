@@ -5,6 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const {
       referenceImageUrl,
+      assetImageUrls,
       assetDescriptions,
       userInstructions,
       hasFaceProfile,
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
 
     const analysis = await analyzeReferenceAndBuildPrompt({
       referenceImageUrl,
+      assetImageUrls: assetImageUrls ?? [],
       assetDescriptions: assetDescriptions ?? [],
       userInstructions: userInstructions ?? '',
       hasFaceProfile: hasFaceProfile ?? false,

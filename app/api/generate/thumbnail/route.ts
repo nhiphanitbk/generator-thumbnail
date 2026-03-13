@@ -7,10 +7,14 @@ export async function POST(req: NextRequest) {
     const {
       analysis,
       faceImageUrls,
+      referenceImageUrl,
+      assetImageUrls,
       variantIndex,
     }: {
       analysis: AnalysisResult
       faceImageUrls?: string[]
+      referenceImageUrl?: string
+      assetImageUrls?: string[]
       variantIndex: 0 | 1
     } = await req.json()
 
@@ -24,13 +28,19 @@ export async function POST(req: NextRequest) {
       const image = await generateWithFace({
         prompt: analysis.generationPrompt,
         faceImageUrls,
+        referenceImageUrl,
+        assetImageUrls,
       })
       imageUrl = image.url
     } else {
+      const prompt = variantIndex === 0
+        ? analysis.generationPrompt
+        : `${analysis.generationPrompt} — For this variant: slightly adjust the subject's facial expression to be more intense/dramatic, and subtly shift the camera angle. Keep background, lighting, clothing, and overall composition identical to the main description.`
+
       const image = await generateThumbnailVariant({
-        prompt: variantIndex === 0
-          ? analysis.generationPrompt
-          : `${analysis.generationPrompt} — For this variant: slightly adjust the subject's facial expression to be more intense/dramatic, and subtly shift the camera angle. Keep background, lighting, clothing, and overall composition identical to the main description.`,
+        prompt,
+        referenceImageUrl,
+        assetImageUrls,
       })
       imageUrl = image.url
     }

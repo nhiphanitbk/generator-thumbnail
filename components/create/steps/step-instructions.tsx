@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useWizardStore, useProfileStore } from '@/lib/store'
+import { useWizardStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { toast } from '@/components/ui/toast'
-import { ArrowRight, ArrowLeft, Sparkles, User, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-react'
 
 const QUICK_PROMPTS = [
   'Replace the person with my face, keep the background and text style',
@@ -18,8 +17,7 @@ const QUICK_PROMPTS = [
 ]
 
 export function StepInstructions() {
-  const { config, setInstructions, setUseFaceProfile, nextStep, prevStep } = useWizardStore()
-  const { profile } = useProfileStore()
+  const { config, setInstructions, nextStep, prevStep } = useWizardStore()
   const [autoLoading, setAutoLoading] = useState(false)
 
   const handleAutoInstructions = async () => {
@@ -33,7 +31,7 @@ export function StepInstructions() {
 
       if (!refUrl) {
         setInstructions(
-          'Use the selected composition layout as a base. Blend my uploaded assets naturally into the scene. If I have a face profile, replace any faces with mine.'
+          'Use the selected composition layout as a base. Blend my uploaded assets naturally into the scene.'
         )
         toast('Auto-instructions generated from template layout', 'info')
         return
@@ -45,7 +43,7 @@ export function StepInstructions() {
         body: JSON.stringify({
           referenceImageUrl: refUrl,
           assetDescriptions: config.assets.map((a) => a.label),
-          hasFaceProfile: !!profile,
+          hasFaceProfile: false,
           autoInstructions: true,
         }),
       })
@@ -122,49 +120,6 @@ export function StepInstructions() {
 
         {/* Right sidebar */}
         <div className="col-span-2 space-y-4">
-          {/* Face toggle */}
-          <div className="bg-surface-2 border border-border rounded-xl p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <User size={14} className={profile ? 'text-accent' : 'text-muted'} />
-                  <span className="text-sm font-medium text-primary">Use my face</span>
-                </div>
-                <p className="text-xs text-muted leading-relaxed">
-                  {profile
-                    ? 'Your face profile will replace faces in the thumbnail'
-                    : 'No face profile set — go to Profile to add one'}
-                </p>
-              </div>
-              <button
-                onClick={() => profile && setUseFaceProfile(!config.useFaceProfile)}
-                disabled={!profile}
-                className={`flex-shrink-0 transition-opacity ${!profile ? 'opacity-30 cursor-not-allowed' : ''}`}
-              >
-                {config.useFaceProfile && profile ? (
-                  <ToggleRight size={28} className="text-accent" />
-                ) : (
-                  <ToggleLeft size={28} className="text-muted" />
-                )}
-              </button>
-            </div>
-            {profile && config.useFaceProfile && (
-              <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={profile.images[0]}
-                  alt="Your face"
-                  className="w-8 h-8 rounded-full object-cover border border-border"
-                />
-                <div>
-                  <p className="text-xs text-primary">Using Gemini</p>
-                  <p className="text-[10px] text-muted">Face identity model</p>
-                </div>
-                <Badge variant="success" className="ml-auto">Active</Badge>
-              </div>
-            )}
-          </div>
-
           {/* Summary */}
           <div className="bg-surface-2 border border-border rounded-xl p-4">
             <h4 className="text-xs font-semibold text-secondary mb-3">Generation summary</h4>
@@ -189,12 +144,6 @@ export function StepInstructions() {
                 label="Instructions"
                 value={config.instructions ? 'Custom' : 'AI-decided'}
                 ok={true}
-              />
-              <SummaryRow
-                label="Face profile"
-                value={config.useFaceProfile && profile ? 'Will be applied' : 'Not using'}
-                ok={config.useFaceProfile && !!profile}
-                neutral={!config.useFaceProfile || !profile}
               />
             </div>
           </div>

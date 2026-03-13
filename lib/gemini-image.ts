@@ -42,11 +42,41 @@ function extractImage(
 // ─── Generate thumbnail at 16:9 (1280×720) ───────────────────────────────────
 export async function generateThumbnailVariant(input: {
   prompt: string;
+  referenceImageUrl?: string;
+  assetImageUrls?: string[];
   seed?: number;
 }): Promise<GeneratedImage> {
+  // Build image parts: reference composition first, then user assets
+  const imageParts: Awaited<ReturnType<typeof urlToInlinePart>>[] = []
+
+  if (input.referenceImageUrl) {
+    try {
+      imageParts.push(await urlToInlinePart(input.referenceImageUrl))
+    } catch {
+      // If reference fetch fails, proceed without it
+    }
+  }
+
+  if (input.assetImageUrls?.length) {
+    const assetParts = await Promise.allSettled(
+      input.assetImageUrls.slice(0, 3).map(urlToInlinePart)
+    )
+    assetParts.forEach((r) => {
+      if (r.status === "fulfilled") imageParts.push(r.value)
+    })
+  }
+
   const response = await ai.models.generateContent({
     model: MODEL,
-    contents: [{ role: "user", parts: [{ text: input.prompt }] }],
+    contents: [
+      {
+        role: "user",
+        parts: [
+          ...imageParts,
+          { text: input.prompt },
+        ],
+      },
+    ],
     config: {
       responseModalities: [Modality.IMAGE, Modality.TEXT],
       imageConfig: { aspectRatio: "16:9", imageSize: "1K" },
@@ -59,11 +89,34 @@ export async function generateThumbnailVariant(input: {
 export async function generateWithFace(input: {
   prompt: string;
   faceImageUrls: string[];
+  referenceImageUrl?: string;
+  assetImageUrls?: string[];
   seed?: number;
 }): Promise<GeneratedImage> {
-  const imageParts = await Promise.all(
-    input.faceImageUrls.slice(0, 4).map(urlToInlinePart),
-  );
+  // Order: reference composition → user assets → face photos
+  const imageParts: Awaited<ReturnType<typeof urlToInlinePart>>[] = []
+
+  if (input.referenceImageUrl) {
+    try {
+      imageParts.push(await urlToInlinePart(input.referenceImageUrl))
+    } catch {
+      // If reference fetch fails, proceed without it
+    }
+  }
+
+  if (input.assetImageUrls?.length) {
+    const assetParts = await Promise.allSettled(
+      input.assetImageUrls.slice(0, 3).map(urlToInlinePart)
+    )
+    assetParts.forEach((r) => {
+      if (r.status === "fulfilled") imageParts.push(r.value)
+    })
+  }
+
+  const faceParts = await Promise.all(
+    input.faceImageUrls.slice(0, 3).map(urlToInlinePart),
+  )
+  imageParts.push(...faceParts)
 
   const facePrompt = buildFaceGenerationPrompt(input.prompt)
 
@@ -83,7 +136,6 @@ export async function generateWithFace(input: {
       imageConfig: { aspectRatio: "16:9", imageSize: "1K" },
     },
   });
-  console.log('🌱🌱🌱🌱🌱___',{response});
   return extractImage(response, 1280, 720);
 }
 

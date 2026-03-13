@@ -64,6 +64,7 @@ export function StepGenerate() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             referenceImageUrl: refUrl,
+            assetImageUrls: config.assets.map((a) => a.url),
             assetDescriptions: config.assets.map((a) => `${a.label} (${a.type})`),
             userInstructions: config.instructions,
             hasFaceProfile: config.useFaceProfile && !!profile,
@@ -112,7 +113,8 @@ export function StepGenerate() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           analysis: analysisResult,
-          referenceImageUrl: refUrl ?? 'https://picsum.photos/1280/720',
+          referenceImageUrl: refUrl ?? undefined,
+          assetImageUrls: config.assets.map((a) => a.url),
           faceImageUrls: faceUrls,
           variantIndex: 0,
         }),
@@ -132,7 +134,8 @@ export function StepGenerate() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           analysis: { ...analysisResult, strength: Math.min(analysisResult.strength + 0.1, 0.9) },
-          referenceImageUrl: refUrl ?? 'https://picsum.photos/1280/720',
+          referenceImageUrl: refUrl ?? undefined,
+          assetImageUrls: config.assets.map((a) => a.url),
           faceImageUrls: faceUrls,
           variantIndex: 1,
         }),

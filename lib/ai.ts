@@ -60,6 +60,24 @@ async function generateTextWithImage(imageUrl: string, prompt: string): Promise<
     .join('') ?? ''
 }
 
+/**
+ * Call Gemini with multiple images + text input, return response text.
+ * Images are passed in order: [referenceImage, ...assetImages]
+ * so the model sees them as visual context before reading the prompt.
+ */
+async function generateTextWithImages(imageUrls: string[], prompt: string): Promise<string> {
+  const imageParts = await Promise.all(imageUrls.map(urlToInlinePart))
+  const response = await ai.models.generateContent({
+    model: TEXT_MODEL,
+    contents: [{ role: 'user', parts: [...imageParts, { text: prompt }] }],
+    config: { responseModalities: [Modality.TEXT] },
+  })
+  return response.candidates?.[0]?.content?.parts
+    ?.filter((p) => p.text)
+    .map((p) => p.text)
+    .join('') ?? ''
+}
+
 /** Extract JSON object from a model response that may include prose */
 function extractJson<T>(text: string): T {
   const match = text.match(/\{[\s\S]*\}/)
@@ -71,12 +89,14 @@ function extractJson<T>(text: string): T {
 
 export async function analyzeReferenceAndBuildPrompt({
   referenceImageUrl,
+  assetImageUrls,
   assetDescriptions,
   userInstructions,
   hasFaceProfile,
   faceProfileNote,
 }: {
   referenceImageUrl: string
+  assetImageUrls?: string[]
   assetDescriptions: string[]
   userInstructions: string
   hasFaceProfile: boolean
@@ -84,13 +104,25 @@ export async function analyzeReferenceAndBuildPrompt({
 }): Promise<AnalysisResult> {
   const assetList = assetDescriptions.length > 0 ? assetDescriptions.join(', ') : 'None'
   const faceInstruction = buildFaceInstruction(hasFaceProfile, faceProfileNote)
-  const schema = buildAnalysisPrompt({ assetList, userInstructions, faceInstruction, hasFaceProfile })
+  const schema = buildAnalysisPrompt({
+    assetList,
+    assetCount: assetImageUrls?.length ?? 0,
+    userInstructions,
+    faceInstruction,
+    hasFaceProfile,
+  })
+
+  // Build ordered image list: [reference, ...assets (max 3)]
+  const allImageUrls = [
+    referenceImageUrl,
+    ...(assetImageUrls ?? []).slice(0, 3),
+  ]
 
   let text: string
   try {
-    text = await generateTextWithImage(
-      referenceImageUrl,
-      `Analyze this reference YouTube thumbnail — extract every visual detail precisely.\n${schema}`
+    text = await generateTextWithImages(
+      allImageUrls,
+      `Analyze these images — the first is the reference YouTube thumbnail, the rest are user assets to integrate.\n${schema}`
     )
   } catch {
     // Vision failed — fall back to text-only
