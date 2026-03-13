@@ -18,10 +18,12 @@ export function extractYouTubeVideoId(url: string): string | null {
 }
 
 export function getYouTubeThumbnailUrls(videoId: string) {
+  const base = `https://img.youtube.com/vi/${videoId}`
   return {
-    maxres: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-    hq: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-    mq: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+    maxres: `${base}/maxresdefault.jpg`, // 1280×720 — HD only
+    sd: `${base}/sddefault.jpg`,         // 640×480
+    hq: `${base}/hqdefault.jpg`,         // 480×360
+    mq: `${base}/mqdefault.jpg`,         // 320×180
   }
 }
 

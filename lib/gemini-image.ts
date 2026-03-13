@@ -83,6 +83,7 @@ export async function generateWithFace(input: {
       imageConfig: { aspectRatio: "16:9", imageSize: "1K" },
     },
   });
+  console.log('🌱🌱🌱🌱🌱___',{response});
   return extractImage(response, 1280, 720);
 }
 

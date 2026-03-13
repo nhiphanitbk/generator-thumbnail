@@ -16,13 +16,17 @@ export async function POST(req: NextRequest) {
 
     const urls = getYouTubeThumbnailUrls(videoId)
 
-    // Try maxresdefault first
-    let thumbnailUrl = urls.hq // fallback
-    try {
-      const res = await fetch(urls.maxres, { method: 'HEAD' })
-      if (res.ok) thumbnailUrl = urls.maxres
-    } catch {
-      // fall through to hq
+    // Cascade from highest to lowest resolution
+    // maxresdefault (1280×720) → sddefault (640×480) → hqdefault (480×360)
+    const candidates = [urls.maxres, urls.sd, urls.hq]
+    let thumbnailUrl = urls.hq // safe fallback — always exists
+    for (const candidate of candidates) {
+      try {
+        const res = await fetch(candidate, { method: 'HEAD' })
+        if (res.ok) { thumbnailUrl = candidate; break }
+      } catch {
+        // try next
+      }
     }
 
     // Try to get title via oEmbed (no API key needed)
